@@ -1,51 +1,33 @@
 from __future__ import annotations
-from typing import Iterable, Sequence
+from typing import Iterable
 
 
 class Sudoku:
     """A mutable sudoku puzzle."""
 
     def __init__(self, puzzle: Iterable[Iterable]):
-        self._grid: list[str] = []
+        # build grid as a list of lists containing ints
+        self._grid: list[list[int]] = []
 
+        # append puzzle input to grid
         for puzzle_row in puzzle:
-            row = ""
-
+            row_list = []
             for element in puzzle_row:
-                row += str(element)
+                row_list.append(int(element))
 
-            self._grid.append(row)
+            self._grid.append(row_list)
 
     def place(self, value: int, x: int, y: int) -> None:
         """Place value at x,y."""
-        row = self._grid[y]
-        new_row = ""
-
-        for i in range(9):
-            if i == x:
-                new_row += str(value)
-            else:
-                new_row += row[i]
-
-        self._grid[y] = new_row
+        self._grid[y][x] = value
 
     def unplace(self, x: int, y: int) -> None:
         """Remove (unplace) a number at x,y."""
-        row = self._grid[y]
-        new_row = row[:x] + "0" + row[x + 1:]
-        self._grid[y] = new_row
+        self._grid[y][x] = 0
 
     def value_at(self, x: int, y: int) -> int:
         """Returns the value at x,y."""
-        value = -1
-
-        for i in range(9):
-            for j in range(9):
-                if i == x and j == y:
-                    row = self._grid[y]
-                    value = int(row[x])
-
-        return value
+        return self._grid[y][x]
 
     def options_at(self, x: int, y: int) -> Iterable[int]:
         """Returns all possible values (options) at x,y."""
@@ -79,27 +61,25 @@ class Sudoku:
         next_x, next_y = -1, -1
 
         for y in range(9):
-            for x in range(9):
-                if self.value_at(x, y) == 0 and next_x == -1 and next_y == -1:
-                    next_x, next_y = x, y
+            # check for 0 in row, if so get y coordinate
+            if 0 in self._grid[y]:
+                if next_x == -1 and next_y == -1:
+                    next_x, next_y = self._grid[y].index(0), y
 
         return next_x, next_y
 
     def row_values(self, i: int) -> Iterable[int]:
         """Returns all values at i-th row."""
-        values = []
 
-        for j in range(9):
-            values.append(self.value_at(j, i))
+        values = self._grid[i]
 
         return values
 
     def column_values(self, i: int) -> Iterable[int]:
         """Returns all values at i-th column."""
-        values = []
 
-        for j in range(9):
-            values.append(self.value_at(i, j))
+        # gets the ith item of every row in grid
+        values = [item[i] for item in self._grid]
 
         return values
 
@@ -113,12 +93,14 @@ class Sudoku:
         """
         values = []
 
-        x_start = (i % 3) * 3
+        x_start = (i % 3)
         y_start = (i // 3) * 3
 
-        for x in range(x_start, x_start + 3):
-            for y in range(y_start, y_start + 3):
-                values.append(self.value_at(x, y))
+        for y in range(y_start, y_start + 3):
+            # splits row into three parts
+            row = list(zip(*(iter(self._grid[y]),) * 3))
+            # adds values of row split for right block
+            values += list(row[x_start])
 
         return values
 
@@ -132,23 +114,27 @@ class Sudoku:
         result = True
 
         for i in range(9):
-            for value in values:
-                if value not in self.column_values(i):
-                    result = False
+            # sudoku not solved if there is a value missing in column values
+            if values != sorted(self.column_values(i)):
+                result = False
 
-                if value not in self.row_values(i):
-                    result = False
+            # sudoku not solved if there is a value missing in row values
+            if values != sorted(self.row_values(i)):
+                result = False
 
-                if value not in self.block_values(i):
-                    result = False
+            # sudoku not solved if there is a value missing in block values
+            if values != sorted(self.block_values(i)):
+                result = False
 
         return result
 
     def __str__(self) -> str:
         representation = ""
 
+        # prints representation of sudoku
         for row in self._grid:
-            representation += row + "\n"
+            row2 = " ".join(str(e) for e in row)
+            representation += row2 + "\n"
 
         return representation.strip()
 
